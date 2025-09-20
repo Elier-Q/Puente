@@ -11,6 +11,8 @@ import {
 } from "react-native";
 import * as MediaLibrary from "expo-media-library";
 import axios from "axios";
+import { BACKEND_URL } from '@env';
+
 
 export default function App() {
   const [facing, setFacing] = useState<CameraType>("back");
@@ -74,7 +76,7 @@ export default function App() {
       } as any);
 
       const response = await axios.post(
-        "http://127.0.0.1:8000/upload", // ⚠️ replace with your backend URL
+        `${BACKEND_URL}/translate-image`, // ⚠️ replace with your backend URL
         formData,
         { headers: { "Content-Type": "multipart/form-data" } }
       );
