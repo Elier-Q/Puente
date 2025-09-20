@@ -1,4 +1,4 @@
-# Puente: Bridging the gap between Cultures
+# Puente: Bridging the Gap between Different Cultures
 
 A mobile application that utilizes Optical Character Recognition (OCR) and Google Gemini's API to identify and translate Miami-specific cultural phrases from images in real-time.
 
