@@ -2,6 +2,7 @@ import os
 import json
 from typing import List
 from fastapi import FastAPI , File , UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel , Field
 import google.generativeai as genai
 import pytesseract
@@ -83,7 +84,15 @@ async def get_translation_from_gemini(full_text) -> TranslationResponse:
     
 
 pillow_heif.register_heif_opener()
-app = FastAPI(title='Gemini API')    
+app = FastAPI(title='Gemini API')
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=['*'],
+    allow_credentials=True,
+    allow_methods=['*'],
+    allow_headers=['*']
+)    
 
 # API endpoint
 @app.post('/translate-image' , response_model=TranslationResponse)
