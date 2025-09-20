@@ -15,7 +15,7 @@ from fastapi.concurrency import run_in_threadpool
 # gemini
 load_dotenv()
 GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
-#pytesseract.pytesseract.tesseract_cmd = os.getenv('TESSERACT_CMD_PATH')
+pytesseract.pytesseract.tesseract_cmd = os.getenv('TESSERACT_CMD_PATH')
 
 genai.configure(api_key=GOOGLE_API_KEY)
     
