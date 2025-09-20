@@ -11,6 +11,8 @@ from dotenv import load_dotenv
 import pillow_heif
 import io
 from fastapi.concurrency import run_in_threadpool
+import cv2
+import numpy as np
 
 # gemini
 load_dotenv()
@@ -142,7 +144,12 @@ async def translate_image(file: UploadFile = File(...)):
             detail='Uploaded image file is corrupted.'
         )
     
-    extracted_text = await run_in_threadpool(pytesseract.image_to_string , image)
+    tesseract_config = r'--oem 3 --psm 6'
+    extracted_text = await run_in_threadpool(
+        pytesseract.image_to_string ,
+        image ,
+        lang='spa',
+        config=tesseract_config)
     extracted_text = extracted_text.strip()
     
     return await get_translation_from_gemini(extracted_text)
