@@ -1,16 +1,22 @@
 import os
 import json
+from dotenv import load_dotenv
 from typing import List
 from fastapi import FastAPI , HTTPException
 from pydantic import BaseModel , Field
 import google.generativeai as genai
 
 # gemini
-GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
+load_dotenv()
+try:
+    GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
+    if not GOOGLE_API_KEY:
+        raise ValueError('No API Key')
+    genai.configure(api_key=GOOGLE_API_KEY)
+except ValueError as e:
+    exit()
 
-genai.configure(api_key=GOOGLE_API_KEY)
-
-# input
+# API data structure
 class TranslationRequest(BaseModel):
     text_to_translate: List[str] = Field(
         ...,
@@ -18,7 +24,7 @@ class TranslationRequest(BaseModel):
         description='List of extracted strings by OCR'
     )
     
-#output
+# output
 class TranslationItem(BaseModel):
     
     lang_detected: str = Field(..., example='es', description="Language code detected for the term")
@@ -34,7 +40,7 @@ class TranslationResponse(BaseModel):
     translations: List[TranslationItem]
     
     
-app = FastAPI(title='Gemini API')
+app = FastAPI(title='Transapp API')
 
 
 def get_translation_from_gemini(full_text) -> TranslationResponse:
@@ -50,10 +56,13 @@ def get_translation_from_gemini(full_text) -> TranslationResponse:
         generation_config={'response_mime_type': "application/json"}
     )
     
-    response = model.generate_content(system_prompt)
-    response_json = json.loads(response.text)
-    
-    return TranslationResponse(**response_json)
+    try:
+        response = model.generate_content_async(system_prompt)
+        response_json = json.loads(response.text)
+        return TranslationResponse(**response_json)
+    except Exception as e:
+        print('Error')
+        raise HTTPException(status_code=500)
     
     
     
@@ -62,5 +71,5 @@ def get_translation_from_gemini(full_text) -> TranslationResponse:
 async def translate_image_text(request: TranslationRequest):
     full_text = ' '.join(request.text_to_translate)
     
-    translation_response = get_translation_from_gemini(full_text)
+    translation_response = await get_translation_from_gemini(full_text)
     return translation_response
