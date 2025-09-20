@@ -109,8 +109,7 @@ async def get_translation_from_gemini(full_text) -> TranslationResponse:
     
     response_json = json.loads(response.text)
     print(response_json)
-    print('========================================================================================================')
-    print(response.text)
+    
     return TranslationResponse(**response_json)
     
 
@@ -147,7 +146,7 @@ async def translate_image(file: UploadFile = File(...)):
         )
     
     tesseract_config = r'--oem 3 --psm 6'
-    
+    6
     extracted_text= pytesseract.image_to_string(image, config=tesseract_config)
     extracted_text= extracted_text.strip()
     return await get_translation_from_gemini(extracted_text)
