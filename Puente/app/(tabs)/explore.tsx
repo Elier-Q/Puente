@@ -10,9 +10,7 @@ import {
   Image,
 } from "react-native";
 import * as MediaLibrary from "expo-media-library";
-import axios from "axios";
 import { BACKEND_URL } from '@env';
-
 
 export default function App() {
   const [facing, setFacing] = useState<CameraType>("back");
@@ -41,49 +39,54 @@ export default function App() {
 
   // 📸 Take a picture
   async function takePicture() {
-    if (cameraRef.current) {
-      try {
-        const photo = await cameraRef.current.takePictureAsync();
-        setPhotoUri(photo.uri);
+    if (!cameraRef.current) return;
 
-        // Upload to backend
-        await uploadPhoto(photo.uri);
+    try {
+      const photo = await cameraRef.current.takePictureAsync();
+      setPhotoUri(photo.uri);
 
-        // Optionally save to Photos app
-        const perm = await MediaLibrary.requestPermissionsAsync();
-        if (perm.granted) {
-          await MediaLibrary.saveToLibraryAsync(photo.uri);
-        }
-      } catch (e) {
-        console.warn("Failed to take picture", e);
+      // Upload to backend
+      await uploadPhoto(photo.uri);
+
+      // Optionally save to Photos app
+      const perm = await MediaLibrary.requestPermissionsAsync();
+      if (perm.granted) {
+        await MediaLibrary.saveToLibraryAsync(photo.uri);
       }
+    } catch (e) {
+      console.warn("Failed to take picture", e);
     }
   }
 
-  // 🌐 Upload to backend with Axios
+  // 🌐 Upload to backend with fetch
   async function uploadPhoto(photoUri: string) {
     try {
       const formData = new FormData();
+      const fileExt = photoUri.split('.').pop() || 'jpg';
+      const fileType = fileExt === 'heic' ? 'image/heic' : 'image/jpeg';
 
-      // Detect extension (iOS might use HEIC)
-      const fileExt = photoUri.split(".").pop() || "jpg";
-      const fileType = fileExt === "heic" ? "image/heic" : "image/jpeg";
-
-      formData.append("file", {
+      formData.append('file', {
         uri: photoUri,
         name: `photo.${fileExt}`,
         type: fileType,
       } as any);
 
-      const response = await axios.post(
-        `${BACKEND_URL}/translate-image`, // ⚠️ replace with your backend URL
-        formData,
-        { headers: { "Content-Type": "multipart/form-data" } }
-      );
+      const response = await fetch(`${BACKEND_URL}/translate-image`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        body: formData,
+      });
 
-      console.log("Upload success:", response.data);
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('Upload success:', data);
     } catch (err) {
-      console.error("Upload error:", err);
+      console.error('Upload error:', err);
     }
   }
 
