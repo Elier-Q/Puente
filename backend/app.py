@@ -25,7 +25,7 @@ model = genai.GenerativeModel(
     generation_config={'response_mime_type': "application/json"}
 )
     
-#output
+# output
 class TranslationItem(BaseModel):
     lang_detected: str = Field(..., example='es', description="Language code detected for the term")
     term: str = Field(..., example='ropa vieja' , description="The original slang term.")
