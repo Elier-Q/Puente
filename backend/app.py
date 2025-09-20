@@ -15,7 +15,7 @@ from fastapi.concurrency import run_in_threadpool
 # gemini
 load_dotenv()
 GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
-pytesseract.pytesseract.tesseract_cmd = os.getenv('TESSERACT_CMD_PATH')
+#pytesseract.pytesseract.tesseract_cmd = os.getenv('TESSERACT_CMD_PATH')
 
 genai.configure(api_key=GOOGLE_API_KEY)
     
@@ -107,6 +107,7 @@ async def get_translation_from_gemini(full_text) -> TranslationResponse:
     response = model.generate_content(system_prompt)
     
     response_json = json.loads(response.text)
+    print(response_json)
     return TranslationResponse(**response_json)
     
 
