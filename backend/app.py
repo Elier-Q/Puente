@@ -17,14 +17,6 @@ GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
 pytesseract.pytesseract.tesseract_cmd = os.getenv('TESSERACT_CMD_PATH')
 
 genai.configure(api_key=GOOGLE_API_KEY)
-
-# input
-class TranslationRequest(BaseModel):
-    text_to_translate: List[str] = Field(
-        ...,
-        example=["Prueba la ropa vieja!" , "Dale!"],
-        description='List of extracted strings by OCR'
-    )
     
 #output
 class TranslationItem(BaseModel):
