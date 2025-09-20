@@ -18,6 +18,10 @@ GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
 pytesseract.pytesseract.tesseract_cmd = os.getenv('TESSERACT_CMD_PATH')
 
 genai.configure(api_key=GOOGLE_API_KEY)
+model = genai.GenerativeModel(
+    'gemini-1.5-flash-latest',
+    generation_config={'response_mime_type': "application/json"}
+)
     
 #output
 class TranslationItem(BaseModel):
@@ -98,12 +102,7 @@ async def get_translation_from_gemini(full_text) -> TranslationResponse:
     
     # identity -> task -> rules -> context -> examples -> required JSON schema -> user request
     system_prompt = '\n'.join([identity,task,rules,context,required_output,user_request])
-    
-    model = genai.GenerativeModel(
-        'gemini-1.5-flash-latest',
-        generation_config={'response_mime_type': "application/json"}
-    )
-    
+
     response = model.generate_content(system_prompt)
     
     response_json = json.loads(response.text)
