@@ -11,6 +11,7 @@ A mobile application that utilizes Optical Character Recognition (OCR) and Googl
 **Frontend:**
 * React Native
 * TypeScript
+
 **Backend:**
 * Python
 * FastAPI
