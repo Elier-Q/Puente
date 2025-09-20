@@ -74,7 +74,7 @@ export default function App() {
       } as any);
 
       const response = await axios.post(
-        "http://127.0.0.1:8000/upload", // ⚠️ replace with your backend URL
+        "http://127.0.0.1:8000/translate-image", // ⚠️ replace with your backend URL
         formData,
         { headers: { "Content-Type": "multipart/form-data" } }
       );
