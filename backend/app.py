@@ -10,6 +10,7 @@ from PIL import Image , ImageOps
 from dotenv import load_dotenv
 import pillow_heif
 import io
+import cv2
 from fastapi.concurrency import run_in_threadpool
 import numpy as np
 
@@ -32,6 +33,18 @@ class TranslationItem(BaseModel):
 class TranslationResponse(BaseModel):
     original_text: str = Field(..., example="Prueba la ropa vieja! Dale!")
     translations: List[TranslationItem]
+    translater_text: str = Field(..., example="Try the shredded beef stew! Go for it!")
+
+def preprocess_image(image_bytes: bytes) -> Image.Image:
+    np_arr = np.frombuffer(image_bytes, np.uint8)
+    image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+    
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    processed_image = cv2.adaptiveThreshold(
+        gray , 255 , cv2.ADAPTIVE_THRESH_GAUSSIAN_C , cv2.THRESH_BINARY , 11 , 2
+    )
+
+    return Image.fromarray(processed_image)
     
 
 async def get_translation_from_gemini(full_text) -> TranslationResponse:
@@ -49,7 +62,7 @@ async def get_translation_from_gemini(full_text) -> TranslationResponse:
     1. Output ONLY valid JSON. Do not include any text or commentary before or after JSON object.
     2. Always include 'original_text' as given.
     3. If no slang or idioms are detected, you MUST return an empty list for the "translations". Do not explain common Spanish or Creole words unless they are in a unique, specific slang context.
-    4. If you detect text that has obvious processing errors resulting in grammatical and/or spelling mistakes, do your best to interpret the intended meaning and provide the most accurate translation possible.
+    4. If you detect text that has obvious OCR processing errors (e.g., typos, misspellings), do your best to interpret the intended meaning and provide the most accurate translation possible based on the correct text.
     """
     context = """
     ### CONTEXT:
@@ -65,27 +78,30 @@ async def get_translation_from_gemini(full_text) -> TranslationResponse:
     **Input Text:** "Que bola acere, coge la guagua pa' la playa."
     **Output JSON:**
     {{
-        "original_text": "Que bola acere, coge la guagua pa' la playa."
+        "original_text": "Que bola acere, coge la guagua pa' la playa.",
         "translations": [
             {{"lang_detected": "es-CU", "term": "Que bola", "contextual_translation: "A common Cuban greeting similar to 'What's up?' or 'How's it going'"}},
             {{"lang_detected": "es-CU", "term": "acere", "contextual_translation": "A friendly Cuban term for 'dude', 'friend', or 'mate'."}},
             {{"lang_detected: "es-CU", "term": "guagua", "contextual_translation": "The word for a public bus in Cuba and other Caribbean countries.}}
-        ]
+        ],
+        "translated_text": "What's up dude, take the bus to the beach."
     }}
     **Input Text:** "Sak pase my bro? We're gonna parkear the car and go eat."
     **Output JSON:**
     {{
-        "original_text": "Sak pase my bro? We're gonna parkear the car and go eat."
+        "original_text": "Sak pase my bro? We're gonna parkear the car and go eat.",
         "translations": [
             {{"lang_detected": "ht", "term": "Sak pase", "contextual_translation": "A standard greeting in Haitian Creole meaning 'What's happening?'"}},
             {{"lang_detected": "en-SFL", "term": "parkear", "contextual_translation": "A Spanglish verb meaning 'to park' (from the English 'park'). Common in South Florida.}}   
-        ]
+        ],
+        "translated_text": "What's happening bro? We're gonna park the car and go eat."
     }}
     **Input Text (Negative Example):** "My grandmother's old clothes are in the attic."
     **Output JSON:**
     {{
-        "original_text": "My grandmother's old clothes are in the attic."
-        "translations": []
+        "original_text": "My grandmother's old clothes are in the attic.",
+        "translations": [],
+        "translated_text": ""
     }}
     """
     required_output = """
@@ -94,7 +110,8 @@ async def get_translation_from_gemini(full_text) -> TranslationResponse:
         "original_text": "The full original text",
         "translations": [
             {{'lang_detected': 'language-code (e.g., es-CU, ht, en-SFL)' , 'term': 'specific slang term or phrase' , 'contextual_translation': 'a brief, easy-to-understand explanation'}}
-        ]
+        ],
+        "translated_text": "A fully translated version of the original text, if applicable. If no slang or idioms are detected, this should be an empty string."
     }}
     """
     user_request = f"""
@@ -114,7 +131,7 @@ async def get_translation_from_gemini(full_text) -> TranslationResponse:
     
 
 pillow_heif.register_heif_opener()
-app = FastAPI(title='Gemini API')
+app = FastAPI(title='Puente API')
 
 app.add_middleware(
     CORSMiddleware,
@@ -134,19 +151,21 @@ async def translate_image(file: UploadFile = File(...)):
         )
     
     image_bytes = await file.read()
-    print('Image Sent!')
+    print('Image Received!')
     
     try:
-        image = Image.open(io.BytesIO(image_bytes))
-        image = ImageOps.exif_transpose(image)
+        processed_image = await run_in_threadpool(preprocess_image , image_bytes)
     except Exception:
         raise HTTPException(
             status_code=422,
             detail='Uploaded image file is corrupted.'
         )
     
-    tesseract_config = r'--oem 3 --psm 6'
-    6
-    extracted_text= pytesseract.image_to_string(image, config=tesseract_config)
+    tesseract_config = r'--oem 3'
+    extracted_text= await run_in_threadpool(
+        pytesseract.image_to_string,
+        processed_image,
+        config=tesseract_config
+    )
     extracted_text= extracted_text.strip()
     return await get_translation_from_gemini(extracted_text)
