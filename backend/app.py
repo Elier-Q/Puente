@@ -20,13 +20,10 @@ genai.configure(api_key=GOOGLE_API_KEY)
     
 #output
 class TranslationItem(BaseModel):
-    
     lang_detected: str = Field(..., example='es', description="Language code detected for the term")
     term: str = Field(..., example='ropa vieja' , description="The original slang term.")
     contextual_translation: str = Field(..., example='shredded beef stew')
-    
 class TranslationResponse(BaseModel):
-    
     original_text: str = Field(..., example="Prueba la ropa vieja! Dale!")
     translations: List[TranslationItem]
     
