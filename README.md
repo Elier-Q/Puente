@@ -7,7 +7,7 @@ A mobile application that utilizes Optical Character Recognition (OCR) and Googl
 * **Text Extraction:** Automatically extracts text from provided images using Tesseract OCR.
 * **AI-Powered Translation:** Identifies and provides contextual explanations for cultural terms common in South Florida
 
-## ## Tech Stack
+## Tech Stack
 **Frontend:**
 * React Native
 * TypeScript
