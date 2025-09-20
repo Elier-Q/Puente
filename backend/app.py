@@ -33,20 +33,20 @@ async def get_translation_from_gemini(full_text) -> TranslationResponse:
     
     # Prompt Engineering
     identity = """
-    You are a very highly skilled and specialized translator, who has upmost confidence in their ability.
+    You are a very highly skilled and specialized cultural linguist and Miami native, who has upmost confidence in their ability. You have incredibly deep expertine in slang and idioms unique to South Florida's diverse communities, including Cuban and Haitian-Creole cultures.
     """
     task = """
-    YOUR TASK:
-    You have a mission to identify and explain slang, idioms, or culturally significant terms common in Miami, Florida. These terms may come from a variety of South Florida languages and cultures, such as Cuban, Haitian-Creole, and Venezuelan, as examples.
+    ### YOUR TASK:
+    You have a mission to identify and explain slang, idioms, or culturally significant terms common in Miami, Florida to a tourist or newcomer.
     """
     rules = """
-    RULES:
-    1. Output ONLY valid JSON, no extra commentary.
+    ### RULES:
+    1. Output ONLY valid JSON. Do not include any text or commentary before or after JSON object.
     2. Always include 'original_text' as given.
-    3. If no slang or idioms are detected, return an empty list for 'translations'.
+    3. If no slang or idioms are detected, you MUST return an empty list for the "translations". Do not explain common Spanish or Creole words unless they are in a unique, specific slang context.
     """
     context = """
-    CONTEXT:
+    ### CONTEXT:
     You may find many examples of Cuban slang and cultural terms. I have compiled a small list of possiblities, so that you grow to have a deeper understanding of your true mission:
         - Que bola? -> What's up?
         - Acere/Asere -> Similar to "dude" or "mate"
@@ -54,19 +54,46 @@ async def get_translation_from_gemini(full_text) -> TranslationResponse:
         - Guagua -> Bus
         - Le Ronca El Mango -> Colorful expression to say something is too much
         - Chevere -> Used to mean that something is cool
+        
+    EXAMPLES (Demonstrate your expertise)
+    **Input Text:** "Que bola acere, coge la guagua pa' la playa."
+    **Output JSON:**
+    {{
+        "original_text": "Que bola acere, coge la guagua pa' la playa."
+        "translations": [
+            {{"lang_detected": "es-CU", "term": "Que bola", "contextual_translation: "A common Cuban greeting similar to 'What's up?' or 'How's it going'"}},
+            {{"lang_detected": "es-CU", "term": "acere", "contextual_translation": "A friendly Cuban term for 'dude', 'friend', or 'mate'."}},
+            {{"lang_detected: "es-CU", "term": "guagua", "contextual_translation": "The word for a public bus in Cuba and other Caribbean countries.}}
+        ]
+    }}
+    **Input Text:** "Sak pase my bro? We're gonna parkear the car and go eat."
+    **Output JSON:**
+    {{
+        "original_text": "Sak pase my bro? We're gonna parkear the car and go eat."
+        "translations": [
+            {{"lang_detected": "ht", "term": "Sak pase", "contextual_translation": "A standard greeting in Haitian Creole meaning 'What's happening?'"}},
+            {{"lang_detected": "en-SFL", "term": "parkear", "contextual_translation": "A Spanglish verb meaning 'to park' (from the English 'park'). Common in South Florida.}}   
+        ]
+    }}
+    **Input Text (Negative Example):** "My grandmother's old clothes are in the attic."
+    **Output JSON:**
+    {{
+        "original_text": "My grandmother's old clothes are in the attic."
+        "translations": []
+    }}
     """
     required_output = """
-    REQUIRED JSON OUTPUT STRUCTURE:
+    ### REQUIRED JSON OUTPUT STRUCTURE:
     {{
         "original_text": "The full original text",
         "translations": [
-            {{'lang_detected': 'language-code' , 'term': 'slang-term' , 'contextual_translation': 'explanation'}}
+            {{'lang_detected': 'language-code (e.g., es-CU, ht, en-SFL)' , 'term': 'specific slang term or phrase' , 'contextual_translation': 'a brief, easy-to-understand explanation'}}
         ]
     }}
     """
     user_request = f"""
-    USER REQUEST:
-    Analyze the following text and analyze an accurate JSON response and translation: "{full_text}"
+    ### USER REQUEST:
+    Analyze the following text and analyze an accurate JSON response based on all the rules and examples provided: "{full_text}"
     """
     
     # identity -> task -> rules -> context -> examples -> required JSON schema -> user request
@@ -77,7 +104,7 @@ async def get_translation_from_gemini(full_text) -> TranslationResponse:
         generation_config={'response_mime_type': "application/json"}
     )
     
-    response = await model.generate_content(system_prompt)
+    response = model.generate_content(system_prompt)
     
     response_json = json.loads(response.text)
     return TranslationResponse(**response_json)
