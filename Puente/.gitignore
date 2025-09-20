@@ -33,7 +33,6 @@ yarn-error.*
 # local env files
 .env
 .env*.local
-./Puente/BACKEND_URL.env
 
 # typescript
 *.tsbuildinfo

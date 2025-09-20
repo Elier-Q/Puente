@@ -3,21 +3,18 @@ import { useState, useRef } from "react";
 import {
   Button,
   Text,
-  ScrollView,
   StyleSheet,
   View,
   TouchableOpacity,
   Image,
 } from "react-native";
-import * as MediaLibrary from "expo-media-library";
-import { BACKEND_URL } from '@env';
+import * as ImagePicker from "expo-image-picker";
+import { BACKEND_URL } from "../../constants/urls";
 
 export default function App() {
   const [facing, setFacing] = useState<CameraType>("back");
   const [permission, camRequestPermission] = useCameraPermissions();
-  const [albums, setAlbums] = useState<any[] | null>(null);
   const [photoUri, setPhotoUri] = useState<string | null>(null);
-  const [permissionResponse, requestPermission] = MediaLibrary.usePermissions();
   const cameraRef = useRef<CameraView | null>(null);
 
   if (!permission) return <View />;
@@ -28,7 +25,7 @@ export default function App() {
         <Text style={styles.message}>
           We need your permission to show the camera
         </Text>
-        <Button onPress={requestPermission} title="Grant permission" />
+        <Button onPress={camRequestPermission} title="Grant permission" />
       </View>
     );
   }
@@ -44,37 +41,48 @@ export default function App() {
     try {
       const photo = await cameraRef.current.takePictureAsync();
       setPhotoUri(photo.uri);
-
-      // Upload to backend
       await uploadPhoto(photo.uri);
-
-      // Optionally save to Photos app
-      const perm = await MediaLibrary.requestPermissionsAsync();
-      if (perm.granted) {
-        await MediaLibrary.saveToLibraryAsync(photo.uri);
-      }
     } catch (e) {
       console.warn("Failed to take picture", e);
     }
   }
 
-  // 🌐 Upload to backend with fetch
+  // 🖼️ Pick an image from gallery
+  async function pickImage() {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: "images", // ✅ lowercase string
+        allowsEditing: true,
+        quality: 1,
+      });
+
+      if (!result.canceled) {
+        const uri = result.assets[0].uri;
+        setPhotoUri(uri);
+        await uploadPhoto(uri);
+      }
+    } catch (e) {
+      console.warn("Failed to pick image", e);
+    }
+  }
+
+  // 🌐 Upload to backend
   async function uploadPhoto(photoUri: string) {
     try {
       const formData = new FormData();
-      const fileExt = photoUri.split('.').pop() || 'jpg';
-      const fileType = fileExt === 'heic' ? 'image/heic' : 'image/jpeg';
+      const fileExt = photoUri.split(".").pop() || "jpg";
+      const fileType = fileExt === "heic" ? "image/heic" : "image/jpeg";
 
-      formData.append('file', {
+      formData.append("file", {
         uri: photoUri,
         name: `photo.${fileExt}`,
         type: fileType,
       } as any);
 
       const response = await fetch(`${BACKEND_URL}/translate-image`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'multipart/form-data',
+          "Content-Type": "multipart/form-data",
         },
         body: formData,
       });
@@ -84,9 +92,9 @@ export default function App() {
       }
 
       const data = await response.json();
-      console.log('Upload success:', data);
+      console.log("Upload success:", data);
     } catch (err) {
-      console.error('Upload error:', err);
+      console.error("Upload error:", err);
     }
   }
 
@@ -104,23 +112,8 @@ export default function App() {
           <Text style={styles.text}>Snap</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[styles.button, styles.getAlbumsButton]}
-          onPress={async () => {
-            try {
-              const perm = await MediaLibrary.requestPermissionsAsync();
-              if (!perm.granted) {
-                alert("Media library permission is required to get albums.");
-                return;
-              }
-              const a = await MediaLibrary.getAlbumsAsync();
-              setAlbums(a);
-            } catch (e) {
-              console.warn("Failed to get albums", e);
-            }
-          }}
-        >
-          <Text style={styles.text}>Albums</Text>
+        <TouchableOpacity style={styles.button} onPress={pickImage}>
+          <Text style={styles.text}>Gallery</Text>
         </TouchableOpacity>
       </View>
 
@@ -130,26 +123,13 @@ export default function App() {
           <Image source={{ uri: photoUri }} style={styles.preview} />
         </View>
       )}
-
-      {/* Albums overlay */}
-      {albums && (
-        <View style={styles.albumsContainer} pointerEvents="box-none">
-          <ScrollView style={styles.albumsList}>
-            {albums.map((alb: any) => (
-              <View key={alb.id} style={styles.albumRow}>
-                <Text style={styles.albumText}>{alb.title}</Text>
-              </View>
-            ))}
-          </ScrollView>
-        </View>
-      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: "center" },
-  message: { textAlign: "center", paddingBottom: 10 },
+  container: { flex: 1, justifyContent: "center", backgroundColor: "#000" },
+  message: { textAlign: "center", paddingBottom: 10, color: "#fff" },
   camera: { flex: 1 },
   buttonContainer: {
     position: "absolute",
@@ -162,25 +142,6 @@ const styles = StyleSheet.create({
   },
   button: { alignItems: "center" },
   text: { fontSize: 18, fontWeight: "bold", color: "white" },
-  getAlbumsButton: { alignItems: "center" },
-  albumsContainer: {
-    position: "absolute",
-    bottom: 140,
-    left: 16,
-    right: 16,
-    maxHeight: 240,
-  },
-  albumsList: {
-    backgroundColor: "rgba(0,0,0,0.6)",
-    borderRadius: 8,
-    padding: 8,
-  },
-  albumRow: {
-    paddingVertical: 8,
-    borderBottomColor: "rgba(255,255,255,0.1)",
-    borderBottomWidth: 1,
-  },
-  albumText: { color: "white", fontSize: 16 },
   previewContainer: {
     position: "absolute",
     top: 64,
