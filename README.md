@@ -1,6 +1,6 @@
 # Puente: Bridging the Gap between Different Cultures
 
-A mobile application that utilizes Optical Character Recognition (OCR) and Google Gemini's API to identify and translate Miami-specific cultural phrases from images in real-time.
+A mobile application that utilizes Optical Character Recognition (OCR) and Google Gemini's API to identify and translate Miami-specific cultural phrases from images in real-time. Puente aims to help Miami become a smarter, more inclusive city by fostering strong connections amongst its multicultural population.
 
 ## Features
 * **Image Upload:** Upload an image from your device's gallery or camera.
@@ -9,7 +9,7 @@ A mobile application that utilizes Optical Character Recognition (OCR) and Googl
 
 ## Tech Stack
 **Frontend:**
-* React Native
+* React Native (cross-platform, IOS + Android)
 * TypeScript
 
 **Backend:**
@@ -17,3 +17,8 @@ A mobile application that utilizes Optical Character Recognition (OCR) and Googl
 * FastAPI
 * Google Gemini API
 * PyTesseract (for OCR)
+
+## Future Roadmap
+* Phrase Cards
+* Dialect Detection + Translation
+* Community Glossary
