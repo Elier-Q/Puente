@@ -11,7 +11,6 @@ from dotenv import load_dotenv
 import pillow_heif
 import io
 from fastapi.concurrency import run_in_threadpool
-import cv2
 import numpy as np
 
 # gemini
@@ -50,6 +49,7 @@ async def get_translation_from_gemini(full_text) -> TranslationResponse:
     1. Output ONLY valid JSON. Do not include any text or commentary before or after JSON object.
     2. Always include 'original_text' as given.
     3. If no slang or idioms are detected, you MUST return an empty list for the "translations". Do not explain common Spanish or Creole words unless they are in a unique, specific slang context.
+    4. If you detect text that has obvious processing errors resulting in grammatical and/or spelling mistakes, do your best to interpret the intended meaning and provide the most accurate translation possible.
     """
     context = """
     ### CONTEXT:
@@ -109,6 +109,8 @@ async def get_translation_from_gemini(full_text) -> TranslationResponse:
     
     response_json = json.loads(response.text)
     print(response_json)
+    print('========================================================================================================')
+    print(response.text)
     return TranslationResponse(**response_json)
     
 
@@ -145,7 +147,7 @@ async def translate_image(file: UploadFile = File(...)):
         )
     
     tesseract_config = r'--oem 3 --psm 6'
-    extracted_text = pytesseract.image_to_string(image , lang='spa' , config=tesseract_config)
-    extracted_text = extracted_text.strip()
     
+    extracted_text= pytesseract.image_to_string(image, config=tesseract_config)
+    extracted_text= extracted_text.strip()
     return await get_translation_from_gemini(extracted_text)
