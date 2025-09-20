@@ -1,9 +1,13 @@
 import os
 import json
 from typing import List
-from fastapi import FastAPI , HTTPException
+from fastapi import FastAPI , File , UploadFile
 from pydantic import BaseModel , Field
 import google.generativeai as genai
+import pytesseract ; pytesseract.pytesseract.tesseract_cmd = r'"C:/Program Files/Tesseract-OCR/tesseract.exe"'
+from PIL import Image
+
+import io
 
 # gemini
 GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
@@ -37,16 +41,28 @@ class TranslationResponse(BaseModel):
 app = FastAPI(title='Gemini API')
 
 
-def get_translation_from_gemini(full_text) -> TranslationResponse:
-    identity = ''''''
-    task = ''''''
-    context = f''''''
-    required_output = f''''''
+async def get_translation_from_gemini(full_text) -> TranslationResponse:
     
-    system_prompt = '\n'.join([identity,task,context,required_output])
+    # identity -> task -> rules -> context -> examples -> required output
+    system_prompt = f"""
+    You are a specialized translation API. Your mission is to identify and explain slang, idioms, or culturally specific terms common in Miami, Florida.
+    Your entire output MUST be a single, valid JSON object that matches the required schema. If no slang is found, return the JSON with an empty "translations" list.
+    
+    JSON SCHEMA:
+    {{
+      "original_text": "The full original text.",
+      "translations": [
+        {{ "lang_detected": "language-code", "term": "slang-term", "contextual_translation": "explanation" }}
+      ]
+    }}
+
+    USER REQUEST:
+    Analyze the following text and generate the JSON response:
+    "{full_text}"
+    """
     
     model = genai.GenerativeModel(
-        'gemini-2.5-flash-lite',
+        'gemini-1.5-flash-latest',
         generation_config={'response_mime_type': "application/json"}
     )
     
@@ -58,9 +74,12 @@ def get_translation_from_gemini(full_text) -> TranslationResponse:
     
     
 # API endpoint
-@app.post('/translate' , response_model=TranslationResponse)
-async def translate_image_text(request: TranslationRequest):
-    full_text = ' '.join(request.text_to_translate)
+@app.post('/translate-image' , response_model=TranslationResponse)
+async def translate_image(file: UploadFile = File(...)):
     
-    translation_response = get_translation_from_gemini(full_text)
-    return translation_response
+    image_bytes = await file.read()
+    
+    image = Image.open(io.BytesIO(image_bytes))
+    extracted_text = pytesseract.image_to_string(image)
+    
+    return await get_translation_from_gemini(extracted_text)
