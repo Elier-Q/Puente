@@ -140,3 +140,6 @@ vite.config.ts.timestamp-*
 
 # config.env
 .env
+
+# Hide private backend URL
+constants/urls.ts
