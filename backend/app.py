@@ -1,7 +1,7 @@
 import os
 import json
 from typing import List
-from fastapi import FastAPI , File , UploadFile
+from fastapi import FastAPI , File , UploadFile , HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel , Field
 import google.generativeai as genai
@@ -77,9 +77,9 @@ async def get_translation_from_gemini(full_text) -> TranslationResponse:
         generation_config={'response_mime_type': "application/json"}
     )
     
-    response = model.generate_content(system_prompt)
-    response_json = json.loads(response.text)
+    response = await model.generate_content(system_prompt)
     
+    response_json = json.loads(response.text)
     return TranslationResponse(**response_json)
     
 
@@ -97,12 +97,23 @@ app.add_middleware(
 # API endpoint
 @app.post('/translate-image' , response_model=TranslationResponse)
 async def translate_image(file: UploadFile = File(...)):
+    if not file.content_type.startswith('image/'):
+        raise HTTPException(
+            status_code=400,
+            detail='File is not an image.'
+        )
     
     image_bytes = await file.read()
     print('Image Sent!')
     
-    image = Image.open(io.BytesIO(image_bytes))
-    image = ImageOps.exif_transpose(image)
+    try:
+        image = Image.open(io.BytesIO(image_bytes))
+        image = ImageOps.exif_transpose(image)
+    except Exception:
+        raise HTTPException(
+            status_code=422,
+            detail='Uploaded image file is corrupted.'
+        )
     
     extracted_text = await run_in_threadpool(pytesseract.image_to_string , image)
     extracted_text = extracted_text.strip()
