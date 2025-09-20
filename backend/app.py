@@ -145,11 +145,7 @@ async def translate_image(file: UploadFile = File(...)):
         )
     
     tesseract_config = r'--oem 3 --psm 6'
-    extracted_text = await run_in_threadpool(
-        pytesseract.image_to_string ,
-        image ,
-        lang='spa',
-        config=tesseract_config)
+    extracted_text = pytesseract.image_to_string(image , lang='spa' , config=tesseract_config)
     extracted_text = extracted_text.strip()
     
     return await get_translation_from_gemini(extracted_text)
