@@ -1,14 +1,18 @@
+// app/tabs/explore.tsx
+import React, { useState, useRef } from "react";
+import { View, Text, TouchableOpacity, StyleSheet, Image, Button } from "react-native";
 import { CameraView, CameraType, useCameraPermissions } from "expo-camera";
-import { useState, useRef } from "react";
-import { View, Text, Button, TouchableOpacity, Image, StyleSheet } from "react-native";
 import * as ImagePicker from "expo-image-picker";
-import { BACKEND_URL } from "../../constants/urls";
+import { uploadCamera } from "../../hooks/uploadCamera";
 
-export default function App() {
-  const [facing, setFacing] = useState<CameraType>("back");
-  const [permission, camRequestPermission] = useCameraPermissions();
+export default function ExploreScreen() {
+  const [facing] = useState<CameraType>("back"); // No flip button, so facing is fixed
+  const [permission, requestPermission] = useCameraPermissions();
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const cameraRef = useRef<CameraView | null>(null);
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   if (!permission) return <View />;
 
@@ -16,79 +20,61 @@ export default function App() {
     return (
       <View style={styles.container}>
         <Text style={styles.message}>Camera permission required</Text>
-        <Button onPress={camRequestPermission} title="Grant permission" />
+        <Button onPress={requestPermission} title="Grant permission" />
       </View>
     );
   }
 
-  const toggleCameraFacing = () => {
-    setFacing(facing === "back" ? "front" : "back");
-  };
-
   const takePicture = async () => {
     if (!cameraRef.current) return;
-    const photo = await cameraRef.current.takePictureAsync();
-    setPhotoUri(photo.uri);
-    await uploadPhoto(photo.uri);
-  };
-
-  const pickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images, // ✅ correct usage
-      allowsEditing: true,
-      quality: 1,
-    });
-
-    if (!result.canceled) {
-      const uri = result.assets[0].uri;
-      setPhotoUri(uri);
-      await uploadPhoto(uri);
+    try {
+      const photo = await cameraRef.current.takePictureAsync();
+      setPhotoUri(photo.uri);
+      setLoading(true);
+      setError(null);
+      await uploadCamera(photo.uri);
+    } catch (err: any) {
+      setError(err.message);
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const uploadPhoto = async (uri: string) => {
-  try {
-    const formData = new FormData();
-    const ext = uri.split(".").pop() || "jpg";
-    const type = ext === "heic" ? "image/heic" : "image/jpeg";
+  const pickImageFromAlbum = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 1,
+      });
 
-    formData.append("file", {
-      uri,
-      name: `photo.${ext}`,
-      type,
-    } as any);
-
-    const res = await fetch(`${BACKEND_URL}/translate-image`, {
-      method: "POST",
-      body: formData,
-      // ❌ Don't set Content-Type here
-      headers: {
-        Accept: "application/json",
-      },
-    });
-
-    if (!res.ok) throw new Error(`Server error: ${res.status}`);
-    const data = await res.json();
-    console.log("Translation response:", data);
-  } catch (err) {
-    console.error("Upload error:", err);
-  }
-};
-
+      if (!result.canceled) {
+        const uri = result.assets[0].uri;
+        setPhotoUri(uri);
+        setLoading(true);
+        setError(null);
+        await uploadCamera(uri);
+      }
+    } catch (err: any) {
+      setError(err.message);
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
       <CameraView style={styles.camera} facing={facing} ref={cameraRef} />
 
       <View style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.button} onPress={toggleCameraFacing}>
-          <Text style={styles.text}>Flip</Text>
-        </TouchableOpacity>
         <TouchableOpacity style={styles.button} onPress={takePicture}>
-          <Text style={styles.text}>Snap</Text>
+          <Text style={styles.buttonText}>Snap</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.button} onPress={pickImage}>
-          <Text style={styles.text}>Gallery</Text>
+
+        <TouchableOpacity style={styles.button} onPress={pickImageFromAlbum}>
+          <Text style={styles.buttonText}>Album</Text>
         </TouchableOpacity>
       </View>
 
@@ -97,13 +83,15 @@ export default function App() {
           <Image source={{ uri: photoUri }} style={styles.preview} />
         </View>
       )}
+
+      {loading && <Text style={styles.message}>Uploading...</Text>}
+      {error && <Text style={[styles.message, { color: "red" }]}>{error}</Text>}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#000" },
-  message: { textAlign: "center", padding: 10, color: "white" },
   camera: { flex: 1 },
   buttonContainer: {
     position: "absolute",
@@ -114,7 +102,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   button: { alignItems: "center" },
-  text: { color: "white", fontSize: 18, fontWeight: "bold" },
+  buttonText: { color: "white", fontSize: 18, fontWeight: "bold" },
   previewContainer: {
     position: "absolute",
     top: 64,
@@ -125,4 +113,5 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   preview: { width: 100, height: 150 },
+  message: { textAlign: "center", padding: 10, color: "white" },
 });
