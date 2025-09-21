@@ -22,3 +22,4 @@ A mobile application that utilizes Optical Character Recognition (OCR) and Googl
 * Phrase Cards
 * Dialect Detection + Translation
 * Community Glossary
+* Auditory Mechanisms
