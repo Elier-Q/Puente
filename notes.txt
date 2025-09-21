@@ -2,3 +2,10 @@
     - Fix API Key Issues (x)
     - Focus on Prompt Engineering (continue)
     - Expand to translate whole text, break down the slang.
+
+9/21/25
+    - Display culturally significant words, full translation
+    - Final README.md
+    
+    * Finish product by 10:00AM
+    * Submit product by 10:50AM
