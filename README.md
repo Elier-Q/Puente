@@ -18,7 +18,7 @@ A mobile application that utilizes Optical Character Recognition (OCR) and Googl
 * Google Gemini API
 * PyTesseract (for OCR)
 
-## Future Roadmap
+## 🗺️ Future Roadmap
 * Phrase Cards
 * Dialect Detection + Translation
 * Community Glossary
